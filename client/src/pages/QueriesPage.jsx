@@ -159,9 +159,10 @@ export default function QueriesPage() {
           />
         ) : (
           <>
-            <div style={{ display:'grid', gridTemplateColumns:'2fr 110px 90px 120px 140px 80px', padding:'0.625rem 1.25rem', borderBottom:'1px solid var(--border-subtle)', fontSize:'0.72rem', fontWeight:600, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em', fontFamily:'var(--font-mono)' }}>
+            {/* Desktop column headers — hidden on mobile */}
+            <div style={{ display:'grid', gridTemplateColumns:'2fr 110px 90px 120px 140px 80px', padding:'0.625rem 1.25rem', borderBottom:'1px solid var(--border-subtle)', fontSize:'0.72rem', fontWeight:600, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em', fontFamily:'var(--font-mono)' }}
+              className="desktop-only-grid">
               <span>Title</span><span>Category</span><span>Priority</span><span>Status</span>
-              {/* Column header changes based on active tab */}
               <span>{activeTab === 'created' ? 'Assigned to' : 'Submitted by'}</span>
               <span>Created</span>
             </div>
@@ -173,44 +174,33 @@ export default function QueriesPage() {
 
               return (
                 <Link key={q._id} to={`/queries/${q._id}`}
-                  style={{ display:'grid', gridTemplateColumns:'2fr 110px 90px 120px 140px 80px', alignItems:'center', padding:'0.875rem 1.25rem', borderBottom: i < queries.length-1 ? '1px solid var(--border-subtle)' : 'none', textDecoration:'none', transition:'background 0.12s', gap:'0.5rem' }}
+                  style={{ display:'block', padding:'0.875rem 1.25rem', borderBottom: i < queries.length-1 ? '1px solid var(--border-subtle)' : 'none', textDecoration:'none', transition:'background 0.12s' }}
                   onMouseEnter={e => e.currentTarget.style.background='var(--bg-hover)'}
                   onMouseLeave={e => e.currentTarget.style.background='transparent'}
                 >
-                  <div style={{ minWidth:0 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.2rem' }}>
-                      <span style={{ width:7, height:7, borderRadius:'50%', background:pr?.color, flexShrink:0 }} />
-                      <span style={{ fontSize:'0.875rem', fontWeight:500, color:'var(--text-primary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{q.title}</span>
-                    </div>
-                    <div style={{ fontSize:'0.75rem', color:'var(--text-tertiary)', paddingLeft:'1rem' }}>
-                      by {q.createdBy?.name} · {q.comments?.length || 0} comments
-                    </div>
+                  {/* Title row — always visible */}
+                  <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.375rem' }}>
+                    <span style={{ width:7, height:7, borderRadius:'50%', background:pr?.color, flexShrink:0 }} />
+                    <span style={{ fontSize:'0.875rem', fontWeight:500, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{q.title}</span>
                   </div>
-                  <Badge label={cat?.label} color={cat?.color} bg={cat?.color+'15'} />
-                  <span style={{ fontSize:'0.78rem', color:pr?.color, fontFamily:'var(--font-mono)', fontWeight:600 }}>{pr?.label}</span>
-                  <Badge label={st?.label} color={st?.color} bg={st?.bg} />
-                  {q.assignedTo?.length > 0 ? (
-                    <div style={{ display:'flex', alignItems:'center', gap:'0.3rem' }}>
-                      {/* Show up to 3 avatars stacked */}
-                      <div style={{ display:'flex' }}>
-                        {q.assignedTo.slice(0, 3).map((a, idx) => (
-                          <div key={a._id || idx} style={{ marginLeft: idx > 0 ? -8 : 0, zIndex: 3 - idx }}>
-                            <Avatar user={a} size={22} />
-                          </div>
-                        ))}
-                      </div>
-                      <span style={{ fontSize:'0.78rem', color:'var(--text-secondary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                        {q.assignedTo.length === 1
-                          ? q.assignedTo[0].name
-                          : `${q.assignedTo[0].name} +${q.assignedTo.length - 1}`}
+
+                  {/* Meta row */}
+                  <div style={{ display:'flex', alignItems:'center', flexWrap:'wrap', gap:'0.4rem', paddingLeft:'1rem' }}>
+                    <Badge label={cat?.label} color={cat?.color} bg={cat?.color+'15'} />
+                    <span style={{ fontSize:'0.75rem', color:pr?.color, fontFamily:'var(--font-mono)', fontWeight:600 }}>{pr?.label}</span>
+                    <Badge label={st?.label} color={st?.color} bg={st?.bg} />
+                    <span style={{ fontSize:'0.75rem', color:'var(--text-tertiary)', marginLeft:'auto', fontFamily:'var(--font-mono)' }}>{timeAgo(q.createdAt)}</span>
+                  </div>
+
+                  {/* Submitter / assignee row */}
+                  <div style={{ paddingLeft:'1rem', marginTop:'0.25rem', fontSize:'0.75rem', color:'var(--text-tertiary)' }}>
+                    by {q.createdBy?.name} · {q.comments?.length || 0} comments
+                    {q.assignedTo?.length > 0 && (
+                      <span style={{ marginLeft:'0.5rem' }}>
+                        · assigned to {q.assignedTo.length === 1 ? q.assignedTo[0]?.name : `${q.assignedTo[0]?.name} +${q.assignedTo.length - 1}`}
                       </span>
-                    </div>
-                  ) : (
-                    <span style={{ fontSize:'0.78rem', color:'var(--text-tertiary)' }}>
-                      {activeTab === 'created' ? 'Unassigned' : '—'}
-                    </span>
-                  )}
-                  <span style={{ fontSize:'0.75rem', color:'var(--text-tertiary)', fontFamily:'var(--font-mono)' }}>{timeAgo(q.createdAt)}</span>
+                    )}
+                  </div>
                 </Link>
               );
             })}

@@ -37,14 +37,22 @@ export default function QueryDetailPage() {
   const fetchManagers = async () => {
     try {
       const res = await api.get('/users/managers');
+      console.log('[fetchManagers] got:', res.data.data?.length, res.data.data);
       setManagers(res.data.data);
-    } catch {}
+    } catch (err) {
+      console.error('[fetchManagers] error:', err.response?.data || err.message);
+    }
   };
 
   useEffect(() => {
     fetchQuery();
-    if (canManage) fetchManagers();
+    fetchManagers();
   }, [id]);
+
+  // Re-fetch managers if canManage becomes true after initial render (auth context loads async)
+  useEffect(() => {
+    if (canManage && managers.length === 0) fetchManagers();
+  }, [canManage]);
 
   // Scroll to bottom of comments on load
   useEffect(() => {
@@ -254,6 +262,7 @@ export default function QueryDetailPage() {
           {canManage && (
             <div style={{ background:'var(--bg-secondary)', border:'1px solid var(--border-subtle)', borderRadius:'var(--radius-lg)', padding:'1.25rem' }}>
               <h3 style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em', fontFamily:'var(--font-mono)', marginBottom:'0.875rem' }}>Manage</h3>
+              {console.log('[DEBUG] canManage:', canManage, 'managers:', managers.length, 'managers data:', managers)}
 
               <div style={{ display:'flex', flexDirection:'column', gap:'0.875rem' }}>
                 <div>
@@ -268,40 +277,44 @@ export default function QueryDetailPage() {
                     {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{PRIORITIES[p]?.label}</option>)}
                   </select>
                 </div>
-                {isAdmin && (
-                <div>
+                <div style={{ borderTop:'1px solid var(--border-subtle)', paddingTop:'0.875rem' }}>
                   <label style={{ fontSize:'0.75rem', marginBottom:'0.5rem' }}>Assigned to</label>
-                  <div style={{ display:'flex', flexDirection:'column', gap:'0.4rem', maxHeight:160, overflowY:'auto' }}>
-                    {managers.length === 0 && <span style={{ fontSize:'0.78rem', color:'var(--text-tertiary)' }}>No managers found</span>}
-                    {managers.map(m => {
-                      const isChecked = (query.assignedTo || []).some(a => {
-                        const id = a?._id ? a._id.toString() : a?.toString();
-                        return id === m._id.toString();
-                      });
-                      return (
-                        <label key={m._id} style={{ display:'flex', alignItems:'center', gap:'0.5rem', cursor: updating ? 'not-allowed' : 'pointer', textTransform:'none', fontSize:'0.8rem', fontWeight:400, color:'var(--text-secondary)', padding:'0.3rem 0.4rem', borderRadius:'var(--radius-sm)', background: isChecked ? 'var(--accent-muted)' : 'transparent', border: isChecked ? '1px solid rgba(245,158,11,0.2)' : '1px solid transparent', transition:'all 0.15s' }}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            disabled={updating}
-                            style={{ width:'auto', cursor: updating ? 'not-allowed' : 'pointer', accentColor:'var(--accent)' }}
-                            onChange={() => {
-                              const currentIds = (query.assignedTo || []).map(a => (a._id || a)?.toString());
-                              const newIds = isChecked
-                                ? currentIds.filter(aid => aid !== m._id.toString())
-                                : [...currentIds, m._id];
-                              handleUpdate('assignedTo', newIds);
-                            }}
-                          />
-                          <Avatar user={m} size={20} />
-                          <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.name}</span>
-                          <span style={{ marginLeft:'auto', fontSize:'0.68rem', color:'var(--text-tertiary)', fontFamily:'var(--font-mono)', flexShrink:0 }}>{m.domain}</span>
-                        </label>
-                      );
-                    })}
+                  <div style={{ display:'flex', flexDirection:'column', gap:'0.4rem', maxHeight:180, overflowY:'auto', border:'1px solid var(--border-strong)', borderRadius:'var(--radius-md)', padding:'0.5rem', background:'var(--bg-tertiary)' }}>
+                    {managers.length === 0 ? (
+                      <div style={{ fontSize:'0.78rem', color:'var(--text-secondary)', padding:'0.5rem', textAlign:'center' }}>
+                        No managers found.{' '}
+                        <button onClick={fetchManagers} style={{ color:'var(--accent)', background:'none', border:'none', cursor:'pointer', fontSize:'0.78rem', textDecoration:'underline' }}>Retry</button>
+                      </div>
+                    ) : (
+                      managers.map(m => {
+                        const isChecked = (query.assignedTo || []).some(a => {
+                          const aid = a?._id ? a._id.toString() : a?.toString();
+                          return aid === m._id.toString();
+                        });
+                        return (
+                          <label key={m._id} style={{ display:'flex', alignItems:'center', gap:'0.5rem', cursor: updating ? 'not-allowed' : 'pointer', textTransform:'none', fontSize:'0.8rem', fontWeight:400, color:'var(--text-secondary)', padding:'0.3rem 0.4rem', borderRadius:'var(--radius-sm)', background: isChecked ? 'var(--accent-muted)' : 'transparent', border: isChecked ? '1px solid rgba(245,158,11,0.2)' : '1px solid transparent', transition:'all 0.15s' }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              disabled={updating}
+                              style={{ width:'auto', cursor: updating ? 'not-allowed' : 'pointer', accentColor:'var(--accent)' }}
+                              onChange={() => {
+                                const currentIds = (query.assignedTo || []).map(a => (a._id || a)?.toString());
+                                const newIds = isChecked
+                                  ? currentIds.filter(aid => aid !== m._id.toString())
+                                  : [...currentIds, m._id];
+                                handleUpdate('assignedTo', newIds);
+                              }}
+                            />
+                            <Avatar user={m} size={20} />
+                            <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.name}</span>
+                            <span style={{ marginLeft:'auto', fontSize:'0.68rem', color:'var(--text-tertiary)', fontFamily:'var(--font-mono)', flexShrink:0 }}>{m.domain}</span>
+                          </label>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
-                )}
               </div>
             </div>
           )}
